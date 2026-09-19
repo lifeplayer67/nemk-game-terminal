@@ -382,8 +382,8 @@ button.btn.big { font-size: 22px; padding: 12px 34px; }
    - ?station=N — номер станції: показується в шапці й текстах
      («НЕМК-N») і визначає сценарій (по колу). Без параметра —
      випадковий сценарій на кожному запуску/скиданні.
-   - ?hints=0  — прибрати підказки-плейсхолдери з полів вводу
-     (типово hints=1, плейсхолдери показуються).
+   - ?hints=1 — показувати підказки-плейсхолдери у полях вводу
+     (типово hints=0, плейсхолдери приховані).
    ============================================================ */
 
 /* ----------- ТЕКСТ-ПЛЕЙСХОЛДЕР ЗАПРОШЕННЯ (легко замінити) ----------- */
@@ -396,8 +396,8 @@ var INVITE_TEXT = [
 
 /* ================= ПАРАМЕТРИ URL ================= */
 var QS = new URLSearchParams(window.location.search);
-// hints=0 — плейсхолдери в полях не показуються (типово показуються)
-var SHOW_PH = QS.get("hints") !== "0";
+// плейсхолдери показуються лише при явному hints=1 (типово приховані)
+var SHOW_PH = QS.get("hints") === "1";
 // station=N — номер станції (може бути відсутній)
 var STATION_NUM = (function () {
   var n = parseInt(QS.get("station"), 10);
@@ -676,7 +676,7 @@ var TYP_OPTS = [
   { v: "",       label: "▼ обери тип" },
   { v: "chyslo", label: "число" },
   { v: "tekst",  label: "текст" },
-  { v: "takni",  label: "так-ні" }
+  { v: "takni",  label: "істинність" }
 ];
 var OP_OPTS = [
   { v: "",   label: "▼" },
@@ -764,7 +764,7 @@ var SCENARIOS = [
     hEmptyTyp: "Після двокрапки обери тип значення. Порахувати роботів допоможе… звісно, число!",
     hEmptyNum: "Впиши кількість роботів — від 1 до 99.",
     hTekst: "Металоїди все ближче, а тип «текст» зберігає слова, не кількість! «Багацько» роботів я не порахую. Обери тип «число».",
-    hTakni: "Ворог уже на радарах! «Так/ні» відповідає лише, ЧИ Є роботи, а мені треба знати, СКІЛЬКИ їх. Обери тип «число».",
+    hTakni: "Ворог уже на радарах! Тип «істинність» зберігає лише «так» чи «ні» — ЧИ Є роботи, а мені треба знати, СКІЛЬКИ їх. Обери тип «число».",
     hZero: "Нуль роботів станцію не захистять! Впиши число від 1 до 99.",
     status: "Назви змінну, обери тип «число», впиши кількість роботів і натисни ВИКОНАТИ",
     sSaved: "ЗАПИСАНО В ПАМ'ЯТЬ: %NAME% = %N%",
@@ -1037,7 +1037,7 @@ var SCENARIOS = [
     hEmptyTyp: "Після двокрапки обери тип значення. Порахувати крабів допоможе… звісно, число!",
     hEmptyNum: "Впиши кількість крабів — від 1 до 99.",
     hTekst: "Медузи все ближче, а тип «текст» зберігає слова, не кількість! «Ціла купа» крабів я не порахую. Обери тип «число».",
-    hTakni: "Зграя вже світиться за ілюмінатором! «Так/ні» відповідає лише, ЧИ Є краби, а мені треба знати, СКІЛЬКИ їх. Обери тип «число».",
+    hTakni: "Зграя вже світиться за ілюмінатором! Тип «істинність» зберігає лише «так» чи «ні» — ЧИ Є краби, а мені треба знати, СКІЛЬКИ їх. Обери тип «число».",
     hZero: "Нуль крабів станцію не захистять! Впиши число від 1 до 99.",
     status: "Назви змінну, обери тип «число», впиши кількість крабів і натисни ВИКОНАТИ",
     sSaved: "ЗАПИСАНО В ПАМ'ЯТЬ: %NAME% = %N%",
@@ -1309,7 +1309,7 @@ var SCENARIOS = [
     hEmptyTyp: "Після двокрапки обери тип значення. Порахувати ґолемів допоможе… звісно, число!",
     hEmptyNum: "Впиши кількість ґолемів — від 1 до 99.",
     hTekst: "Гремліни вже гризуть частокіл, а тип «текст» зберігає слова, не кількість! «Чимало» ґолемів я не порахую. Обери тип «число».",
-    hTakni: "Ворог під мурами! «Так/ні» відповідає лише, ЧИ Є ґолеми, а мені треба знати, СКІЛЬКИ їх. Обери тип «число».",
+    hTakni: "Ворог під мурами! Тип «істинність» зберігає лише «так» чи «ні» — ЧИ Є ґолеми, а мені треба знати, СКІЛЬКИ їх. Обери тип «число».",
     hZero: "Нуль ґолемів замок не захистять! Впиши число від 1 до 99.",
     status: "Назви змінну, обери тип «число», впиши кількість ґолемів і натисни ВИКОНАТИ",
     sSaved: "ЗАПИСАНО НА ПЕРФОКАРТУ: %NAME% = %N%",
@@ -1538,7 +1538,12 @@ function makeMissions(S) {
         fields: [
           { key: "name", kind: "name", placeholder: S.m1.namePh, emptyHint: S.m1.hEmptyName },
           { key: "typ",  kind: "select", options: TYP_OPTS, emptyHint: S.m1.hEmptyTyp },
-          { key: "num",  kind: "number", len: 2, placeholder: "0", emptyHint: S.m1.hEmptyNum }
+          { key: "num",  kind: "adaptive", len: 2, phNum: "0", phText: "bagato",
+            emptyHint: function (v) {
+              if (v.typ === "takni") return "Обери значення: «так» чи «ні» — саме такі значення зберігає тип «істинність».";
+              if (v.typ === "tekst") return "Впиши будь-який текст — побачиш, які значення зберігає тип «текст».";
+              return S.m1.hEmptyNum;
+            } }
         ],
         statusHint: S.m1.status,
         check: function (v) {
@@ -1576,7 +1581,9 @@ function makeMissions(S) {
         scene: function (g) { return artMeter(S, g.sensorVal); },
         story: function (g) { return S.m2.story(g.sensorVal); },
         template: [
-          "if (" + S.m2.sensor + " ", { f: "op" }, " ", { f: "num" }, ") { ", { f: "act" }, " }"
+          "if (" + S.m2.sensor + " ", { f: "op" }, " ", { f: "num" }, ") {",
+          { nl: 1 }, "    ", { f: "act" }, ";",
+          { nl: 1 }, "}"
         ],
         fields: [
           { key: "op",  kind: "select", options: OP_OPTS, emptyHint: S.m2.hEmptyOp },
@@ -1592,7 +1599,7 @@ function makeMissions(S) {
             return { ok: false, key: "act", hint: S.m2.actHints[v.act] };
           return { ok: true };
         },
-        code: function () { return "if (" + S.m2.sensor + " < 50) { " + S.m2.actCode + "(); }"; },
+        code: function () { return "if (" + S.m2.sensor + " < 50) {\n    " + S.m2.actCode + "();\n}"; },
         success: async function (v, api, g) {
           api.print(S.m2.sRule);
           await api.pause(600);
@@ -1784,7 +1791,12 @@ function makeMissions(S) {
           ],
           fields: [
             { key: "typ", kind: "select", options: TYP_OPTS, emptyHint: S.m5.s1.hEmptyTyp },
-            { key: "num", kind: "number", len: 2, placeholder: "0", emptyHint: S.m5.s1.hEmptyNum }
+            { key: "num", kind: "adaptive", len: 2, phNum: "0", phText: "sylno",
+              emptyHint: function (v) {
+                if (v.typ === "takni") return "Обери значення: «так» чи «ні» — саме такі значення зберігає тип «істинність».";
+                if (v.typ === "tekst") return "Впиши будь-який текст — побачиш, які значення зберігає тип «текст».";
+                return S.m5.s1.hEmptyNum;
+              } }
           ],
           statusHint: S.m5.s1.status,
           check: function (v) {
@@ -1904,8 +1916,63 @@ function fieldDef(st, key) {
   return null;
 }
 
-// Створити елемент поля (select / назва / число)
+// Поле значення змінної, що АДАПТУЄТЬСЯ до обраного типу:
+//   «число»     → лише цифри;
+//   «текст»     → вільний ввід рядка;
+//   «істинність»→ селект «так» / «ні».
+// Так гравець на дотик відчуває, які значення зберігає кожен тип.
+function makeValueWidget(type, def, st) {
+  var el;
+  if (type === "takni") {
+    el = document.createElement("select");
+    el.className = "fld";
+    [
+      { v: "",    label: "▼ так чи ні" },
+      { v: "tak", label: "так" },
+      { v: "ni",  label: "ні" }
+    ].forEach(function (o) {
+      var opt = document.createElement("option");
+      opt.value = o.v;
+      opt.textContent = o.label;
+      el.appendChild(opt);
+    });
+  } else if (type === "tekst") {
+    // вільне текстове поле — можна вводити будь-які рядки
+    el = document.createElement("input");
+    el.type = "text";
+    el.className = "fld";
+    el.autocomplete = "off";
+    el.spellcheck = false;
+    el.maxLength = 12;
+    if (def.phText && SHOW_PH) el.placeholder = def.phText;
+  } else {
+    // «число» (і поки тип не обрано) — приймає лише цифри
+    el = document.createElement("input");
+    el.type = "text";
+    el.className = "fld narrow";
+    el.autocomplete = "off";
+    el.spellcheck = false;
+    el.maxLength = def.len || 2;
+    el.inputMode = "numeric";
+    if (def.phNum && SHOW_PH) el.placeholder = def.phNum;
+    el.addEventListener("input", function () {
+      var v = this.value;
+      var cleaned = v.replace(/[^0-9]/g, "");
+      if (cleaned !== v) {
+        this.value = cleaned;
+        setStatus("Це поле приймає лише цифри.");
+      }
+    });
+  }
+  el.dataset.key = def.key;
+  el.addEventListener("input",  function () { this.classList.remove("need"); });
+  el.addEventListener("change", function () { this.classList.remove("need"); setStatus(resolveVal(st.statusHint)); });
+  return el;
+}
+
+// Створити елемент поля (select / назва / число / адаптивне значення)
 function makeField(def, st) {
+  if (def.kind === "adaptive") return makeValueWidget("chyslo", def, st);
   var el;
   if (def.kind === "select") {
     el = document.createElement("select");
@@ -1987,6 +2054,21 @@ function buildForm(st, myEpoch) {
   btn.textContent = "ВИКОНАТИ ▶";
   form.appendChild(btn);
 
+  // Адаптивне поле значення: коли гравець змінює тип у селекті,
+  // поле значення перебудовується під цей тип
+  var adef = null;
+  st.fields.forEach(function (d) { if (d.kind === "adaptive") adef = d; });
+  if (adef) {
+    var typSel = form.querySelector('[data-key="typ"]');
+    if (typSel) {
+      typSel.addEventListener("change", function () {
+        var old = form.querySelector('[data-key="' + adef.key + '"]');
+        var neu = makeValueWidget(typSel.value, adef, st);
+        old.parentNode.replaceChild(neu, old);
+      });
+    }
+  }
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     tryExecute(st, form, myEpoch);
@@ -2023,7 +2105,10 @@ async function tryExecute(st, form, myEpoch) {
     vals[el.dataset.key] = el.value.trim();
     if (!vals[el.dataset.key]) {
       el.classList.add("need");
-      storyHint(fieldDef(st, el.dataset.key).emptyHint);
+      // emptyHint може бути функцією від уже зібраних значень
+      // (щоб підказка пасувала до обраного типу)
+      var eh = fieldDef(st, el.dataset.key).emptyHint;
+      storyHint(typeof eh === "function" ? eh(vals) : eh);
       el.focus();
       return;
     }
