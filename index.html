@@ -318,6 +318,30 @@ button.btn.big { font-size: 22px; padding: 12px 34px; }
   text-shadow: 0 0 8px rgba(255, 90, 90, 0.6);
 }
 
+/* ---------- Екран живлення (одноразовий, для викладача) ---------- */
+/* Браузер дозволяє requestFullscreen лише у відповідь на дію користувача,
+   тому потрібен один клік/Enter перед грою. Показується тільки при
+   завантаженні сторінки; скидання гри сюди не повертають. */
+#powergate {
+  position: fixed; inset: 0;
+  z-index: 90;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#powergate-btn {
+  background: transparent;
+  border: 1px solid rgba(53, 255, 109, 0.35);
+  color: rgba(53, 255, 109, 0.55);
+  font: inherit;
+  font-size: 16px;
+  padding: 10px 22px;
+  cursor: pointer;
+  animation: softblink 2.2s infinite;
+}
+
 .hidden { display: none !important; }
 
 @media (max-width: 1440px) {
@@ -330,6 +354,11 @@ button.btn.big { font-size: 22px; padding: 12px 34px; }
 <!-- CRT-накладки: скан-лінії та віньєтка -->
 <div id="crt-overlay"></div>
 <div id="crt-vignette"></div>
+
+<!-- Екран живлення: викладач один раз вмикає термінал (і фулскрін) -->
+<div id="powergate">
+  <button id="powergate-btn">[ УВІМКНУТИ ЖИВЛЕННЯ ТЕРМІНАЛА ]</button>
+</div>
 
 <!-- Пролог: «зламаний» екран із SOS (текст задає сценарій) -->
 <div id="prologue">
@@ -2366,6 +2395,20 @@ function resetGame() {
   $("#prologue-btn").focus();
 }
 
+/* ================= ЕКРАН ЖИВЛЕННЯ ================= */
+// Одноразовий крок викладача перед грою: вмикає фулскрін і зникає.
+// resetGame сюди не повертає — гості бачать одразу пролог.
+var elGate = $("#powergate");
+function powerOn() {
+  if (!elGate) return;
+  var root = document.documentElement;
+  if (root.requestFullscreen) root.requestFullscreen().catch(function () {});
+  elGate.remove();
+  elGate = null;
+  $("#prologue-btn").focus();
+}
+elGate.addEventListener("click", powerOn);
+
 /* ================= ГЛОБАЛЬНІ ПОДІЇ ================= */
 elPrologue.addEventListener("click", startGame);
 $("#prologue-btn").addEventListener("click", function (e) { e.stopPropagation(); startGame(); });
@@ -2376,6 +2419,12 @@ elScreen.addEventListener("click", function () {
 });
 
 window.addEventListener("keydown", function (e) {
+  // Поки термінал «вимкнено» — будь-який Enter/пробіл лише вмикає живлення
+  if (elGate && (e.key === "Enter" || e.key === " ")) {
+    e.preventDefault();
+    powerOn();
+    return;
+  }
   // Ctrl+Shift+R — миттєве скидання на пролог (для викладача)
   if (e.ctrlKey && e.shiftKey && e.code === "KeyR") {
     e.preventDefault();
@@ -2405,7 +2454,7 @@ window.addEventListener("keydown", function (e) {
 
 /* ================= СТАРТ ================= */
 pickScenario();
-$("#prologue-btn").focus();
+$("#powergate-btn").focus();
 </script>
 </body>
 </html>
