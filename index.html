@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Станція «НЕМК» — навчальний термінал</title>
+<title>Станція «НЕФК» — навчальний термінал</title>
 <style>
 /* ============================================================
-   СТАНЦІЯ «НЕМК» — ретро-CRT термінал (v2)
+   СТАНЦІЯ «НЕФК» — ретро-CRT термінал (v2)
    Один самодостатній файл. Без зовнішніх ресурсів.
    ============================================================ */
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -370,7 +370,7 @@ button.btn.big { font-size: 22px; padding: 12px 34px; }
 <!-- Основний каркас -->
 <div id="app">
   <header>
-    <span class="title" id="station-title">СТАНЦІЯ «НЕМК»</span>
+    <span class="title" id="station-title">СТАНЦІЯ «НЕФК»</span>
     <span id="mission-ind">•</span>
     <span class="spacer"></span>
     <span id="link-ind">ЗВ'ЯЗОК: ОК</span>
@@ -396,7 +396,7 @@ button.btn.big { font-size: 22px; padding: 12px 34px; }
 <script>
 "use strict";
 /* ============================================================
-   «НЕМК» — рушій гри (v2)
+   «НЕФК» — рушій гри (v2)
 
    АРХІТЕКТУРА ДЛЯ ВИКЛАДАЧА:
    - МЕХАНІКИ 5 місій (поля, перевірки, анімації) — у функції
@@ -409,7 +409,7 @@ button.btn.big { font-size: 22px; padding: 12px 34px; }
 
    ПАРАМЕТРИ URL:
    - ?station=N — номер станції: показується в шапці й текстах
-     («НЕМК-N») і визначає сценарій (по колу). Без параметра —
+     («НЕФК-N») і визначає сценарій (по колу). Без параметра —
      випадковий сценарій на кожному запуску/скиданні.
    - ?hints=1 — показувати підказки-плейсхолдери у полях вводу
      (типово hints=0, плейсхолдери приховані).
@@ -458,7 +458,7 @@ var busy  = false;     // true під час анімації успіху — �
 
 var scenario = null;       // поточний сценарій (сюжетний шар)
 var MISSIONS = [];         // місії, згенеровані makeMissions(scenario)
-var stationLabel = "НЕМК"; // ім'я станції з номером, підставляється замість %ST%
+var stationLabel = "НЕФК"; // ім'я станції з номером, підставляється замість %ST%
 
 // Підстановка імені станції в текстах сценарію
 function T(s) { return String(s).split("%ST%").join(stationLabel); }
@@ -495,9 +495,57 @@ function clickBeep() { beep(1100, 0.012, 0.02); }
 function okBeep()    { beep(660, 0.09, 0.06); setTimeout(function () { beep(990, 0.14, 0.06); }, 100); }
 function warnBeep()  { beep(240, 0.16, 0.06, "sawtooth"); }
 
+/* ================= ОПЦІЙНА МУЗИКА ІНТРО ================= */
+// Якщо ПОРУЧ з index.html лежить файл intro.mp3 — він грає на пролозі
+// (старт після кліку по екрану живлення, зациклено, плавне згасання
+// при старті гри). Файла немає — повна тиша, помилка глушиться.
+// Сам файл у репозиторій не додається (див. .gitignore).
+var introMusic = null;
+(function () {
+  try {
+    var a = new Audio("intro.mp3");
+    a.loop = true;
+    a.volume = 0.4;
+    a.addEventListener("error", function () { introMusic = null; });
+    introMusic = a;
+  } catch (e) { introMusic = null; }
+})();
+
+function playIntroMusic() {
+  if (!introMusic || !soundOn) return;
+  try {
+    introMusic.volume = 0.4;
+    var p = introMusic.play();
+    if (p && p.catch) p.catch(function () { /* автоплей заборонено — тиша */ });
+  } catch (e) { /* музика — не критична функція */ }
+}
+
+function stopIntroMusic() {
+  if (!introMusic) return;
+  var a = introMusic;
+  try {
+    // плавне згасання, потім пауза і повернення гучності для наступного разу
+    var iv = setInterval(function () {
+      a.volume = Math.max(0, a.volume - 0.05);
+      if (a.volume <= 0.01) {
+        clearInterval(iv);
+        a.pause();
+        a.currentTime = 0;
+        a.volume = 0.4;
+      }
+    }, 60);
+  } catch (e) { try { a.pause(); } catch (e2) {} }
+}
+
 $("#snd-btn").addEventListener("click", function () {
   soundOn = !soundOn;
-  if (soundOn) ensureAudio();
+  if (soundOn) {
+    ensureAudio();
+    // якщо ми на пролозі (і живлення вже ввімкнено) — повернути музику
+    if (game.state === "prologue" && !elGate) playIntroMusic();
+  } else if (introMusic) {
+    try { introMusic.pause(); } catch (e) {}
+  }
   this.textContent = soundOn ? "ЗВУК: УВІМК" : "ЗВУК: ВИМК";
 });
 
@@ -529,7 +577,7 @@ async function typeLine(text, cls, myEpoch) {
     el.textContent += text[i];
     if (i % 3 === 0) clickBeep();
     scrollDown();
-    await sleep(14);
+    await sleep(21); // темп друку (сповільнено в 1,5 раза за v4)
   }
   if (epoch === myEpoch) { el.textContent = text; scrollDown(); }
 }
@@ -549,7 +597,7 @@ async function typeStory(lines, myEpoch) {
     if (skipRequested) { print(text, cls); }
     else {
       await typeLine(text, cls, myEpoch);
-      await sleep(90);
+      await sleep(135); // пауза між рядками (сповільнено в 1,5 раза за v4)
     }
   }
   typing = false;
@@ -726,7 +774,7 @@ var SCENARIOS = [
 {
   id: "kosmos",
   zaklad: "СТАНЦІЯ",
-  imya: "НЕМК",
+  imya: "НЕФК",
   prologGlitch: [
     "▓▒░ ЗБІЙ СИСТЕМИ ░▒▓   ▓▒░ ЗБ#Й СИ$ТЕ_И ░▒▓",
     "",
@@ -740,7 +788,7 @@ var SCENARIOS = [
   baseArt: [
     "      .        *            .           *",
     "  *        ______________________         .",
-    "     ====[   СТАНЦІЯ  «Н Е М К»   ]====",
+    "     ====[   СТАНЦІЯ  «Н Е Ф К»   ]====",
     "         [   o    o    o    o     ]      *",
     "  .       \\______________________/",
     "      *          |      |            .",
@@ -752,7 +800,7 @@ var SCENARIOS = [
     return [
       "  МЕТАЛОЇДИ:" + (n > 0 ? roi : "  (обрій чистий)"),
       "",
-      "     ====[   СТАНЦІЯ  «Н Е М К»   ]====",
+      "     ====[   СТАНЦІЯ  «Н Е Ф К»   ]====",
       "         [   o    o    o    o     ]",
       "          \\______________________/"
     ].join("\n");
@@ -763,7 +811,7 @@ var SCENARIOS = [
     "         \\_/\\_/\\_/\\_/\\_/\\_/\\_/\\_/\\_/",
     "",
     "",
-    "     ====[   СТАНЦІЯ  «Н Е М К»   ]====",
+    "     ====[   СТАНЦІЯ  «Н Е Ф К»   ]====",
     "         [   o    o    o    o     ]"
   ].join("\n"),
   victoryArt: [
@@ -773,7 +821,7 @@ var SCENARIOS = [
     "",
     "   ═══════  П  Е  Р  Е  М  О  Г  А  ═══════",
     "",
-    "     ====[   СТАНЦІЯ  «Н Е М К»   ]====",
+    "     ====[   СТАНЦІЯ  «Н Е Ф К»   ]====",
     "         [   o    o    o    o     ]   ура!"
   ].join("\n"),
   unit: { face: "[o_o]", legs: "/| |\\" },
@@ -998,7 +1046,7 @@ var SCENARIOS = [
 {
   id: "okean",
   zaklad: "ГЛИБОКОВОДНА СТАНЦІЯ",
-  imya: "НЕМК",
+  imya: "НЕФК",
   prologGlitch: [
     "≈≈░ АВАРІЯ НА ГЛИБИНІ ░≈≈   ≈≈░ АВ@РІЯ Н# ГЛ*БИНІ ░≈≈",
     "",
@@ -1013,7 +1061,7 @@ var SCENARIOS = [
     "  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~",
     "         .  o    смуга океану    o  .",
     "          ______________________",
-    "    ~~~ (   СТАНЦІЯ  «Н Е М К»   ) ~~~",
+    "    ~~~ (   СТАНЦІЯ  «Н Е Ф К»   ) ~~~",
     "        (    o     o     o      )",
     "         \\______________________/",
     "     . o    |  буль-буль  |    o .",
@@ -1025,7 +1073,7 @@ var SCENARIOS = [
     return [
       "  ЕЛЕКТРОМЕДУЗИ:" + (n > 0 ? roi : "  (вода чиста)"),
       "",
-      "    ~~~ (   СТАНЦІЯ  «Н Е М К»   ) ~~~",
+      "    ~~~ (   СТАНЦІЯ  «Н Е Ф К»   ) ~~~",
       "        (    o     o     o      )",
       "         \\______________________/"
     ].join("\n");
@@ -1036,7 +1084,7 @@ var SCENARIOS = [
     "          \\  ~   ~   ~   ~   ~ /",
     "           )(  )(  )(  )(  )( (   ← щупальця!",
     "",
-    "    ~~~ (   СТАНЦІЯ  «Н Е М К»   ) ~~~",
+    "    ~~~ (   СТАНЦІЯ  «Н Е Ф К»   ) ~~~",
     "        (    o     o     o      )"
   ].join("\n"),
   victoryArt: [
@@ -1046,7 +1094,7 @@ var SCENARIOS = [
     "",
     "   ═══════  П  Е  Р  Е  М  О  Г  А  ═══════",
     "",
-    "    ~~~ (   СТАНЦІЯ  «Н Е М К»   ) ~~~",
+    "    ~~~ (   СТАНЦІЯ  «Н Е Ф К»   ) ~~~",
     "        (    o     o     o      )   ура!"
   ].join("\n"),
   unit: { face: "{o_o}", legs: "/)_(\\" },
@@ -1271,7 +1319,7 @@ var SCENARIOS = [
 {
   id: "zamok",
   zaklad: "МЕХАНІЧНИЙ ЗАМОК",
-  imya: "НЕМК",
+  imya: "НЕФК",
   prologGlitch: [
     "╬═░ ШЕСТЕРНІ СТАЛИ ░═╬   ╬═░ ШЕ$ТЕРН1 СТ@ЛИ ░═╬",
     "",
@@ -1286,7 +1334,7 @@ var SCENARIOS = [
     "        |>                        |>",
     "       _|__   ____________   ______|_",
     "      | [] |_|            |_| []    |",
-    "      |    ЗАМОК  «Н Е М К»         |",
+    "      |    ЗАМОК  «Н Е Ф К»         |",
     "      |  []    []      []    []     |",
     "      |____  ______________  _______|",
     "           |_|   ворота    |_|"
@@ -1298,7 +1346,7 @@ var SCENARIOS = [
       "  ІРЖАВІ ГРЕМЛІНИ:" + (n > 0 ? roi : "  (поле чисте)"),
       "",
       "      | [] |_|            |_| []    |",
-      "      |    ЗАМОК  «Н Е М К»         |",
+      "      |    ЗАМОК  «Н Е Ф К»         |",
       "      |____  ______________  _______|"
     ].join("\n");
   },
@@ -1308,7 +1356,7 @@ var SCENARIOS = [
     "       (  ІРЖАВИЙ ПАРОДРАКОН  )",
     "        \\ верхи — КОРОЛЬ ГРЕМЛІНІВ /",
     "",
-    "      |    ЗАМОК  «Н Е М К»         |",
+    "      |    ЗАМОК  «Н Е Ф К»         |",
     "      |____  ______________  _______|"
   ].join("\n"),
   victoryArt: [
@@ -1318,7 +1366,7 @@ var SCENARIOS = [
     "",
     "   ═══════  П  Е  Р  Е  М  О  Г  А  ═══════",
     "",
-    "      |    ЗАМОК  «Н Е М К»         |",
+    "      |    ЗАМОК  «Н Е Ф К»         |",
     "      |____  ______________  _______|   ура!"
   ].join("\n"),
   unit: { face: "[n_n]", legs: "/| |\\" },
@@ -2172,7 +2220,36 @@ async function tryExecute(st, form, myEpoch) {
   setStatus("Виконую…");
   await st.success(vals, makeApi(myEpoch), game.vars);
   busy = false;
-  if (epoch === myEpoch) advance();
+  offerContinue(myEpoch);
+}
+
+/* ================= КНОПКА ПРОДОВЖЕННЯ ПІСЛЯ УСПІХУ =================
+   Без автопереходу: після успішної анімації гравець спокійно читає
+   звіт і сам тисне кнопку. Виняток — фінальний крок гри: після нього
+   одразу йдуть титри (як і було). */
+function offerContinue(myEpoch) {
+  if (epoch !== myEpoch) return;
+  var m = MISSIONS[game.mission];
+  var lastStep = game.step + 1 >= m.steps.length;
+  if (lastStep && game.mission + 1 >= MISSIONS.length) {
+    advance(); // перемога → титри без зупинки
+    return;
+  }
+  var btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "btn big";
+  btn.textContent = lastStep ? "ПРИЙНЯТИ НАСТУПНЕ ЗАВДАННЯ ▸" : "ПРОДОВЖИТИ ▸";
+  btn.addEventListener("click", function () {
+    if (epoch !== myEpoch) return;
+    clickBeep();
+    advance();
+  });
+  elWork.appendChild(btn);
+  btn.focus();
+  scrollDown();
+  setStatus(lastStep
+    ? "Прочитай звіт місії і натисни «ПРИЙНЯТИ НАСТУПНЕ ЗАВДАННЯ»"
+    : "Прочитай звіт і натисни «ПРОДОВЖИТИ»");
 }
 
 /* ================= КРОК-ВИКЛИК: ГРАВЕЦЬ САМ ДРУКУЄ ВИКЛИК ================= */
@@ -2263,7 +2340,7 @@ function buildCall(st, myEpoch) {
     busy = false;
     if (epoch !== myEpoch) return;
     if (made >= st.total) {
-      advance();
+      offerContinue(myEpoch);
     } else {
       input.disabled = false;
       btn.disabled = false;
@@ -2368,6 +2445,7 @@ function startGame() {
   elPrologue.classList.add("hidden");
   elHelp.classList.remove("open");
   elHelpTgl.setAttribute("aria-expanded", "false");
+  stopIntroMusic(); // музика інтро плавно згасає з початком гри
   runStep();
 }
 
@@ -2392,6 +2470,9 @@ function resetGame() {
   elHelpTgl.setAttribute("aria-expanded", "false");
   pickScenario();
   elPrologue.classList.remove("hidden");
+  // знову на пролозі — музика інтро повертається (якщо файл є і звук увімкнено;
+  // живлення вже вмикали, тож жест користувача був)
+  if (!elGate) playIntroMusic();
   $("#prologue-btn").focus();
 }
 
@@ -2405,6 +2486,7 @@ function powerOn() {
   if (root.requestFullscreen) root.requestFullscreen().catch(function () {});
   elGate.remove();
   elGate = null;
+  playIntroMusic(); // клік по живленню — жест користувача, автоплей дозволений
   $("#prologue-btn").focus();
 }
 elGate.addEventListener("click", powerOn);
