@@ -577,7 +577,7 @@ async function typeLine(text, cls, myEpoch) {
     el.textContent += text[i];
     if (i % 3 === 0) clickBeep();
     scrollDown();
-    await sleep(21); // темп друку (сповільнено в 1,5 раза за v4)
+    await sleep(32); // темп друку (сповільнено ще раз за v5)
   }
   if (epoch === myEpoch) { el.textContent = text; scrollDown(); }
 }
@@ -597,7 +597,7 @@ async function typeStory(lines, myEpoch) {
     if (skipRequested) { print(text, cls); }
     else {
       await typeLine(text, cls, myEpoch);
-      await sleep(135); // пауза між рядками (сповільнено в 1,5 раза за v4)
+      await sleep(200); // пауза між рядками (сповільнено ще раз за v5)
     }
   }
   typing = false;
